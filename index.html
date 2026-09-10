@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mkr1 OCR 판정 도구 — 문서 모음</title>
+<style>
+:root{
+  --ground:#F1F4F2; --surface:#FFFFFF; --surface-2:#E9EEEB;
+  --line:#D5DCD8; --line-soft:#E4EAE6;
+  --ink:#131917; --ink-2:#48544F; --ink-3:#6E7A75;
+  --accent:#17604E; --accent-wash:#DEEAE5;
+  --sans:"IBM Plex Sans KR","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","Consolas",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0E1211; --surface:#161B1A; --surface-2:#1D2422;
+  --line:#2C3532; --line-soft:#232B29;
+  --ink:#E7EDEA; --ink-2:#A9B5B0; --ink-3:#85938D;
+  --accent:#5FCBA9; --accent-wash:#17302A;
+}}
+:root[data-theme="dark"]{
+  --ground:#0E1211; --surface:#161B1A; --surface-2:#1D2422;
+  --line:#2C3532; --line-soft:#232B29;
+  --ink:#E7EDEA; --ink-2:#A9B5B0; --ink-3:#85938D;
+  --accent:#5FCBA9; --accent-wash:#17302A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.72;overflow-wrap:anywhere}
+a{color:var(--accent);text-underline-offset:3px}
+.wrap{display:grid;grid-template-columns:264px minmax(0,1fr);gap:24px;
+  max-width:1200px;margin:0 auto;padding:24px;align-items:start}
+.side{position:sticky;top:24px;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:20px}
+.brand{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
+.brand-sub{color:var(--ink-3);font-size:13px;margin:0 0 16px}
+.navgroup{color:var(--ink-3);font-size:12px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;margin:16px 0 6px}
+.navbtn{display:block;width:100%;text-align:left;min-height:44px;padding:10px 12px;
+  border:1px solid transparent;border-radius:8px;background:none;color:var(--ink-2);
+  font:inherit;font-size:14px;cursor:pointer}
+.navbtn:hover{background:var(--surface-2);color:var(--ink)}
+.navbtn[aria-current="page"]{background:var(--accent-wash);color:var(--accent);
+  border-color:var(--line-soft);font-weight:600}
+.navbtn:focus-visible,.themebtn:focus-visible,.extlink:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+.extlink{display:block;padding:10px 12px;font-size:14px;border-radius:8px}
+.extlink:hover{background:var(--surface-2)}
+.themebtn{margin-top:18px;width:100%;min-height:44px;border:1px solid var(--line);
+  border-radius:8px;background:var(--surface);color:var(--ink-2);font:inherit;
+  font-size:14px;cursor:pointer}
+.themebtn:hover{background:var(--surface-2)}
+.doc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px}
+.docpath{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:0 0 18px;
+  padding-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.doc h1{font-size:25px;font-weight:600;letter-spacing:-.015em;margin:0 0 16px;text-wrap:balance}
+.doc h2{font-size:19px;font-weight:600;margin:32px 0 12px;padding-top:16px;
+  border-top:1px solid var(--line-soft);text-wrap:balance}
+.doc h3{font-size:16px;font-weight:600;margin:22px 0 8px}
+.doc p{margin:0 0 12px}
+.doc ul{margin:0 0 12px;padding-left:20px}
+.doc li{margin:3px 0}
+.doc li>ul{margin:3px 0}
+.doc code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);
+  border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px}
+.doc hr{border:0;border-top:1px solid var(--line-soft);margin:24px 0}
+.tablewrap{overflow-x:auto;margin:0 0 16px}
+.doc table{border-collapse:collapse;width:100%;font-size:14px}
+.doc th,.doc td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+.doc th{background:var(--surface-2);font-weight:600;white-space:nowrap}
+.doc td.num{text-align:right;font-variant-numeric:tabular-nums}
+.foot{color:var(--ink-3);font-size:13px;margin-top:16px;padding:0 4px}
+@media (max-width:860px){
+  .wrap{grid-template-columns:1fr;gap:16px;padding:16px}
+  .side{position:static}
+  .doc{padding:18px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="side" aria-label="문서 목록">
+    <p class="brand">Mkr1 OCR 판정 도구</p>
+    <p class="brand-sub">작업 문서 모음</p>
+    <div id="nav"></div>
+    <p class="navgroup">별도 페이지</p>
+    <div id="links"></div>
+    <button class="themebtn" id="theme" type="button">테마 전환</button>
+  </nav>
+  <main>
+    <article class="doc" id="doc" tabindex="-1"></article>
+    <p class="foot">생성일 2026-09-10 · 원본은 저장소의 마크다운 파일이며 이 페이지는 <code>tools/build_site.py</code>로 재생성</p>
+  </main>
+</div>
+
+<script type="application/json" id="docs-data">[{"key": "rules", "title": "PASS/FAIL 판정 규정", "group": "module_1", "path": "module_1/docs/pass-fail-rules.md", "text": "# PASS/FAIL 판정 규정\n\n## PASS/FAIL 기준\n\n| 규칙 ID | 항목 | PASS 조건 | FAIL 조건 |\n|---|---|---|---|\n| FREQ-01 | Mkr1 주파수 | 2.404000 ≤ f ≤ 2.406000 GHz | 하한 미만 또는 상한 초과 |\n| POWER-01 | Mkr1 전력 | 0 < P ≤ 700.00 µW | 700.00 µW 초과 |\n\n- 주파수 범위: 2404.000~2406.000 MHz 또는 2,404,000,000~2,406,000,000 Hz와 동일\n- 전력 상한: 700.00 µW = 0.70000 mW\n- 모든 경계값 포함: 2.404000 GHz·2.406000 GHz·700.00 µW는 해당 항목 PASS\n- 전력 0 이하: 이번 자료의 로그 전력 표시와 맞지 않는 입력으로 판정 보류, FAIL로 처리 금지\n- 이 범위 선택 목적: 주파수 이탈·전력 초과·경계값·단위 변환 사례를 함께 학습\n- 규정 변경 시 버전 증가 및 전체 이미지 재판정, 기존 결과의 규정 버전 보존"}, {"key": "prd", "title": "OCR 판정 도구 PRD", "group": "Module_2", "path": "Module_2/docs/prd/ocr-pass-fail-prd.md", "text": "# PRD: 시험 이미지 OCR 기반 PASS/FAIL 판정\n\n## 1. 개요\n\n- 배경 및 목적\n  - module_1 후속 과제로, 시험 장비 화면 캡처 이미지에서 측정값을 사람이 옮겨 적는 수작업 존재\n  - 수기 전사 과정의 오기·누락 및 다건 처리 시 소요 시간 발생\n  - 이미지에서 측정값을 OCR로 자동 추출하고 판정 규정에 따라 PASS/FAIL을 자동 산출하는 도구 필요\n  - 판정 결과를 docx 보고서로 내보내어 결과 공유 절차 단축\n- 대상 사용자\n  - 시험 결과 검토 담당자\n  - 판정 결과 보고서 작성 담당자\n  - 세부 사용자 구분 및 권한 분리 없이 단일 사용자 기준으로 동작\n\n## 2. 범위\n\n| 구분 | 내용 |\n|---|---|\n| In Scope | 시험 화면 이미지 다건 일괄 업로드 |\n| In Scope | 이미지 내 Mkr1 주파수·전력 측정값 OCR 추출 |\n| In Scope | 추출값의 단위 정규화(GHz/MHz/Hz, µW/mW/dBm) |\n| In Scope | 판정 규정(주파수·전력) 기반 항목별 PASS/FAIL 및 종합 판정 산출 |\n| In Scope | 보고서 서식 기준(dBµV/m 환산·마진) 판정 병행 산출 |\n| In Scope | 보고서 머리말 항목의 사용자 입력 |\n| In Scope | 추출 실패·저신뢰 값의 사용자 수동 보정 |\n| In Scope | 판정 근거(측정값·기준·비교 결과) 화면 표시 |\n| In Scope | 판정 보류 상태의 별도 구분 표시 |\n| In Scope | 일괄 판정 결과를 서식 기반 docx 보고서 1건으로 취합 내보내기 |\n| In Scope | 판정 규정 버전의 결과 기록 |\n| Out of Scope | 그래프 곡선 형상 자체의 분석·재구성 |\n| Out of Scope | 시험 장비와의 직접 연동 및 실시간 측정 |\n| Out of Scope | 화면 내 판정 규정 편집 기능 |\n| Out of Scope | 이미지 외 형식(PDF·CSV 등) 입력 |\n| Out of Scope | 판정 이력 저장 및 과거 결과 재조회 |\n| Out of Scope | Mkr1 외 항목(Span·RBW·Atten 등)의 판정 |\n| Out of Scope | 사용자 인증·권한 관리 |\n| Out of Scope | 보고서 내 원본 이미지 첨부 |\n| Out of Scope | 보고서 서식 자체의 구조 변경 |\n\n## 3. 기능 요구사항\n\n### 3.1 이미지 입력\n\n- 이미지 파일 다건 동시 업로드 지원\n- 업로드 파일 목록 및 개별 파일명 표시\n- 지원 이미지 형식: png, jpg 등 일반 이미지 형식\n- 1회 업로드 건수는 고정하지 않으며 작업 시마다 상이\n- 업로드 대상에서 개별 파일 제외 가능\n- 지원하지 않는 형식·손상 파일에 대한 사유 표시 및 나머지 파일 처리 지속\n\n### 3.2 측정값 추출\n\n- 이미지 내 Mkr1 주파수 값 추출\n- 이미지 내 Mkr1 전력 값 추출\n- 추출 방식은 OCR 기반\n- 이미지 레이아웃이 완전히 동일하지 않은 경우에도 측정값 항목 인식 시도\n- 항목별 추출 성공·실패 상태 구분 표시\n- 아래 조건 중 하나라도 해당 시 확인 필요 상태로 표시\n  - 해당 항목의 값 문자열 미검출\n  - 숫자·단위 형식 불일치 또는 단위 표기 누락\n  - 값이 물리적으로 성립하지 않는 범위(전력 0 이하 등)\n  - OCR 엔진이 보고한 문자 인식 신뢰도가 기준 미만\n- 확인 필요 판단은 형식 검증을 1차 기준으로 하고 인식 신뢰도를 보조 기준으로 적용\n- 인식 신뢰도 기준값: 0.60 (샘플 20장 측정 결과 정상 건 최저 0.72 기준)\n- 값 일부가 가려진 이미지의 부분 인식값을 정상값으로 처리하지 않음\n- 추출 실패·저신뢰 항목은 판정 전 사용자 확인 필요 상태로 표시\n- 판정 대상 항목은 Mkr1 주파수·전력 2종으로 한정\n- Center Freq·Span·RBW 등 화면 내 설정값은 판정 대상에서 제외\n\n### 3.3 단위 정규화\n\n- 주파수 표기 GHz·MHz·Hz를 동일 기준 값으로 변환하여 비교\n- 전력 표기 µW·mW를 동일 기준 값으로 변환하여 비교\n- 전력이 dBm으로 표기된 이미지에 대해 µW 기준으로 변환하여 비교\n- dBm은 1 mW 기준 절대 단위이므로 변환에 추가 기준 정보 불요\n- dBµV/m 등 상대 단위 표기만 존재하는 경우 판정 보류로 처리\n- 원본 이미지에 표기된 값과 정규화된 값을 함께 표시\n- 원본 표기의 소수점 자릿수 유지\n\n### 3.4 판정\n\n- 두 가지 판정 기준을 병행 적용하고 결과를 각각 표시\n- 기준 A — 규정 문서 판정: `module_1/docs/pass-fail-rules.md` 적용\n  - FREQ-01: Mkr1 주파수의 규정 범위 포함 여부\n  - POWER-01: Mkr1 전력의 규정 상한 이하 여부\n  - 경계값은 PASS로 판정\n- 기준 B — 서식 판정: `report_template.docx` 명시 산식 적용\n  - 측정값(dBµV/m) = 10·log10(µW/1000) + 107 + CF\n  - 마진(dB) = Limit − 측정값, 마진 0 이상 시 PASS\n  - Limit 기본값: 54 dBµV/m (960 MHz 초과 대역·측정거리 3 m, FCC Part 15 Subpart B Class B 기준, 검증 필요)\n  - CF 기본값: 0 dB (무보정 기준)\n  - Limit·CF는 화면에서 수정 가능하며 수정값을 판정과 보고서에 반영\n- 항목별 판정 결과 및 이미지 단위 종합 판정 산출\n- 종합 판정은 두 기준의 전체 항목 PASS 시에만 PASS\n- 기준 A·B 결과가 상이한 경우 해당 건을 특이사항으로 구분 표시\n- 전력 값이 0 이하인 경우 FAIL이 아닌 판정 보류로 처리\n- 추출 실패·미보정 항목이 있는 이미지는 판정 보류로 처리\n- 판정 근거로 측정값·적용 기준·비교 결과를 함께 표시\n- 판정 결과에 적용된 규정 버전 기록\n\n### 3.5 결과 확인 및 보정\n\n- 업로드 건 전체의 판정 결과를 목록 형태로 확인\n- 판정 상태(PASS·FAIL·보류)별 건수 확인\n- 개별 이미지의 원본과 추출값·판정 근거 상세 확인\n- 추출값 수동 수정 및 수정 후 재판정\n- 수정된 값의 수동 보정 여부 표시\n\n### 3.6 보고서 내보내기\n\n- 판정 완료 건에 대한 docx 보고서 생성 및 다운로드\n- 보고서 포함 항목은 서식의 플레이스홀더 구성을 따름\n  - 머리말: 문서번호·시험일·시험명·담당자·적용 규격·시료명·보정계수(CF)\n  - 판정 요약: 총 건수·PASS 건수·FAIL 건수·종합판정\n  - 측정 결과: 번호·주파수(MHz)·측정전력(µW)·dBm·dBµV/m·Limit·마진·판정\n  - 특이사항·작성자·검토자·생성일시\n- 머리말 및 작성자·검토자 항목은 사용자가 화면에서 입력\n- 적용 규격 기본값: `FCC Part 15 Subpart B Class B (3 m)`\n- 문서번호는 사용자 자유 입력, 미입력 시 공란 출력\n- 시험일·생성일시는 보고서 생성 시점 기준 자동 기입\n- 보고서 파일명 규칙: `judgment-report_YYYYMMDD-HHMMSS.docx`\n- 적용 규정 버전 및 판정 보류 건 목록은 특이사항 항목에 기재\n- 기준 A·B 판정 결과가 상이한 건도 특이사항에 기재\n- `module_1/data/report_template.docx` 서식을 보고서 기준 서식으로 사용\n- 업로드 건 전체를 취합하여 docx 보고서 1건으로 생성\n- PASS·FAIL·판정 보류 건을 모두 측정 결과 표에 포함\n- 판정 요약의 PASS·FAIL 건수는 판정 보류 건을 제외하고 집계\n- 원본 이미지는 보고서에 첨부하지 않음\n- 서식의 표 구조·문구를 변경하지 않고 값만 채워 생성\n\n### 3.7 이력\n\n- 판정 결과는 서버에 저장하지 않으며 보고서 내보내기로 결과 보존\n- 화면 이탈·새로고침 시 결과가 유지되지 않음을 사용자에게 안내\n- 보고서에 판정 시점의 규정 버전 기록\n\n### 3.8 백엔드 연결 확인\n\n- 화면에서 Backend 주소 입력 및 저장\n- BE 연결 확인 동작 제공\n- 연결 진행 중·성공·실패 상태 표시\n\n## 4. 비기능 요구사항\n\n- OCR 처리 및 docx 생성은 서버 측에서 수행\n- 판정 결과 영속 저장을 사용하지 않으므로 데이터베이스 미사용\n- 다건 처리 중 개별 이미지 실패가 전체 처리를 중단시키지 않음\n- 처리 진행 상태 및 잔여 건수 확인 가능\n- 판정 결과는 동일 입력·동일 규정에서 동일하게 재현\n- 시각적 표현은 `docs/DESIGN.md` 기준 준수\n- 1회 처리 건수는 고정하지 않되 처리 중 진행 상태 확인 가능\n- 외부 네트워크 연결 없이 로컬 환경에서 전체 기능 동작\n- 판정·보고서 생성 과정에서 외부 서비스 호출 및 이미지 외부 전송 없음\n\n## 5. 가정 및 전제조건\n\n| 구분 | 내용 | 검증 필요 여부 |\n|---|---|---|\n| 사용자 가정 | 사용자가 시험 규정 및 측정 항목의 의미를 이해하고 있음 | 필요 |\n| 사용자 가정 | 사용자가 OCR 오인식 값을 원본 이미지와 대조하여 판단 가능 | 필요 |\n| 환경 가정 | 사용자가 웹 브라우저로 도구에 접근 | 불필요 |\n| 환경 가정 | 서버 측 OCR 처리 환경 구성 가능 | 필요 |\n| 환경 가정 | `report_template.docx` 서식을 원본 그대로 사용 | 불필요 |\n| 데이터 가정 | 보고서의 dBµV/m 환산식·CF는 교육용 가정값이며 실측 보정값이 아님 | 불필요 |\n| 데이터 가정 | 입력 이미지는 시험 장비 화면 캡처이며 module_1 샘플과 유사한 구성 | 필요 |\n| 데이터 가정 | 이미지 레이아웃·해상도·표기 단위가 항상 동일하지는 않음 | 불필요 |\n| 데이터 가정 | 판정 대상 항목은 Mkr1 주파수·전력 2종 | 불필요 |\n| 데이터 가정 | 이미지 내 측정값 텍스트가 판독 가능한 수준으로 표시됨 | 필요 |\n| 데이터 가정 | 판정 규정은 module_1 문서를 그대로 승계 | 필요 |\n\n## 6. 미확정 사항\n\n- 서식 판정(기준 B) Limit 기본값 54 dBµV/m의 적용 대역·측정조건 적합성 확인\n\n## 7. 사전 검증 결과\n\n- 검증일: 2026-09-10, 대상: `module_1/data/images` 20장\n- 추출 엔진: 로컬 OCR(RapidOCR/ONNX Runtime), 외부 서비스 호출 없이 동작 확인\n\n| 항목 | 결과 |\n|---|---|\n| 추출 성공 | 18 / 20 |\n| 확인 필요 | 2 / 20 (값 일부가 가려진 이미지) |\n| 오추출 | 0 건 |\n| 주파수 인식 신뢰도 | 0.86 ~ 0.92 |\n| 전력 인식 신뢰도 | 0.72 ~ 0.85 |\n| 기준 A 판정 | PASS 9 / FAIL 9 / 보류 2 |\n\n- 경계값 판정 동작 확인: 2.404000 GHz·2.406000 GHz·700.00 µW → PASS, 2.406001 GHz·700.01 µW → FAIL\n- mW 표기 전력의 µW 변환 동작 확인\n- Mkr1 라벨과 동일 행의 `Ref` 표기값이 전력값으로 오인식되므로 위치 제약 필요\n"}, {"key": "task1", "title": "task-001 스캐폴드·UI", "group": "Module_2", "path": "Module_2/spec/task-001.md", "text": "# task-001: 스캐폴드 및 UI 구성\n\n- 대상 PRD: `Module_2/docs/prd/ocr-pass-fail-prd.md`\n- 원칙: UI-First. UI·라우팅·연동 경로를 먼저 확정 후 판정 로직 착수\n- 후속 문서: `task-002.md` (추출·판정·보고서 구현)\n\n## Phase-01 프로젝트 스캐폴드\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-101 | `Module_2/project/frontend` 에 Vite + TypeScript + React 프로젝트 생성 | ❌ |\n| T-102 | `Module_2/project/backend` 에 FastAPI 프로젝트 및 가상환경 생성 | ⚠️ 가상환경만 생성 |\n| T-103 | `Module_2/project/output` 디렉토리 생성 (보고서 저장 위치) | ❌ |\n| T-104 | `.gitignore` 에 가상환경·`node_modules`·`output` 산출물 제외 등록 | ❌ |\n| T-105 | Windows용 실행 배치 스크립트 작성 (`run-frontend.bat`, `run-backend.bat`, CRLF) | ❌ |\n| T-106 | DB 미사용 확정에 따라 DB 관련 설정·의존성 미포함 확인 | ❌ |\n\n## Phase-02 라이브러리 설치 및 동작 검증\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-201 | BE: `fastapi`, `uvicorn`, `python-multipart` 설치 | ❌ |\n| T-202 | BE: OCR 엔진 설치 및 로컬 동작 확인 (RapidOCR/ONNX Runtime 선정) | ✅ |\n| T-203 | BE: docx 처리 라이브러리 설치, 서식 파일 열기·저장 왕복 확인 | ❌ |\n| T-204 | BE: 이미지 처리 라이브러리 설치 및 png/jpg 로드 확인 | ❌ |\n| T-205 | FE: 라우팅 라이브러리 설치 및 기본 라우트 동작 확인 | ❌ |\n| T-206 | 샘플 이미지 OCR 텍스트 추출 가능 여부 확인 | ✅ |\n| T-207 | 서식 파일의 플레이스홀더 치환 결과가 Word에서 정상 열림 확인 | ❌ |\n\n## Phase-03 화면 및 라우팅 구성\n\n- 구성: 단일 흐름 중심 (업로드 → 검토·보정 → 보고서), 상단 메뉴 사용\n- 시각 기준: `.claude/docs/DESIGN.md` 준수\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-301 | 공통 레이아웃 구성 (상단 제목·메뉴, 콘텐츠 최대 폭 유지) | ❌ |\n| T-302 | 라우트 `/` 업로드 화면: 다건 파일 선택, 파일 목록, 개별 제외, 실행 버튼 | ❌ |\n| T-303 | 라우트 `/review` 검토 화면: 판정 결과 표, 상태별 건수, 상세 패널 | ❌ |\n| T-304 | 라우트 `/report` 보고서 화면: 머리말 입력 폼, 생성·다운로드 버튼 | ❌ |\n| T-305 | 라우트 `/settings` 설정 화면: Backend 주소, Limit, CF 입력 및 초기화 | ❌ |\n| T-306 | 판정 기준 A·B 결과를 각각 표시하는 표 컬럼 구성 | ❌ |\n| T-307 | 상태 표시 규칙 구현 (PASS·FAIL·보류를 색상 + 텍스트 동시 표기) | ❌ |\n| T-308 | 빈 상태·로딩·오류·성공 안내 문구 배치 | ❌ |\n| T-309 | 375px·1280px 화면에서 레이아웃 깨짐·라벨 잘림 확인 | ❌ |\n| T-310 | 키보드 이동 및 포커스 표시, 입력 라벨 연결 확인 | ❌ |\n\n## Phase-04 FE·BE 연동 스캐폴드\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-401 | BE: `GET /health` 구현 (`{\"status\":\"ok\"}` 반환) | ❌ |\n| T-402 | BE: CORS 설정, 개발용 `http://localhost:5173` 허용 | ❌ |\n| T-403 | FE: Backend 주소 입력·저장(브라우저 저장), 공백·끝 슬래시 정리, 잘못된 URL 거부 | ❌ |\n| T-404 | FE: 주소 우선순위 적용 (저장값 → `VITE_API_BASE_URL` → 미설정 안내) | ❌ |\n| T-405 | FE: `BE 연결 확인` 버튼 및 진행 중·성공·실패·제한시간 상태 표시 | ❌ |\n| T-406 | 모든 API 요청에 공통 주소 적용, 개발 proxy 의존 금지 | ❌ |\n| T-407 | BE 중지 상태·잘못된 주소 입력 시 실패 표시 확인 | ❌ |\n| T-408 | BE: 스텁 API `POST /judge`(고정 응답), `POST /report`(빈 docx 반환) 구현 | ❌ |\n| T-409 | FE에서 스텁 API 호출로 업로드 → 결과 표 → 보고서 다운로드 전 흐름 관통 확인 | ❌ |\n\n## Phase-05 검증 및 정리\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-501 | FE 빌드 성공 확인 | ❌ |\n| T-502 | 배치 스크립트로 FE·BE 각각 기동 확인 | ❌ |\n| T-503 | 업로드 → 검토 → 보고서 화면 전환 및 새로고침 동작 확인 | ❌ |\n| T-504 | 대용량·다건 파일 선택 시 목록 표시 동작 확인 | ❌ |\n| T-505 | 테스트용 프로세스 종료 (Vite 5173, uvicorn 8000) | ❌ |\n| T-506 | 확인된 항목·미검증 항목 기록 | ❌ |\n\n## 확인 필요 사항\n\n- OCR 엔진은 RapidOCR(ONNX Runtime)로 확정, 샘플 20장 추출 성공 18/20·오추출 0건\n- 서식 플레이스홀더 치환 방식은 T-203·T-207 결과로 확정\n"}, {"key": "task2", "title": "task-002 추출·판정·보고서", "group": "Module_2", "path": "Module_2/spec/task-002.md", "text": "# task-002: 추출·판정·보고서 구현\n\n- 선행 문서: `task-001.md` (스캐폴드·UI·연동 완료 전제)\n- 대상 PRD: `Module_2/docs/prd/ocr-pass-fail-prd.md`\n- 판정 규정: `module_1/docs/pass-fail-rules.md`\n- 보고서 서식: `module_1/data/report_template.docx`\n\n## Phase-06 OCR 추출\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-601 | 업로드 이미지 수신 및 형식·손상 여부 검사, 실패 사유 반환 | ❌ |\n| T-602 | 이미지에서 텍스트 추출 후 Mkr1 주파수·전력 값 식별 | ❌ |\n| T-603 | Mkr1 라벨 기준 상대 위치(우측·하단) 제약으로 `Ref` 표기값 오인식 차단 | ⚠️ 검증 스크립트에서 확인 |\n| T-604 | 항목별 추출 성공·실패 및 인식 신뢰도 반환 | ❌ |\n| T-605 | 확인 필요 판정 조건 구현, 가려진 부분값의 정상값 처리 차단 | ⚠️ 검증 스크립트에서 확인 |\n| T-606 | 샘플 20장 전체 추출 결과 대조, 인식률 기록 (18/20, 오추출 0) | ✅ |\n| T-607 | 신뢰도 기준값 0.60 확정 및 PRD 반영 | ✅ |\n\n## Phase-07 단위 정규화 및 판정\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-701 | 주파수 GHz·MHz·Hz 정규화, 원본 소수점 자릿수 보존 | ❌ |\n| T-702 | 전력 µW·mW·dBm 정규화 (dBm → µW 변환 포함) | ❌ |\n| T-703 | dBµV/m 등 상대 단위만 존재 시 판정 보류 처리 | ❌ |\n| T-704 | 기준 A 구현: FREQ-01·POWER-01, 경계값 PASS 처리 | ❌ |\n| T-705 | 기준 B 구현: dBµV/m 환산, 마진 계산, Limit·CF 적용 | ❌ |\n| T-706 | 전력 0 이하 및 미보정 항목의 판정 보류 처리 | ❌ |\n| T-707 | 종합 판정 산출 (기준 A·B 전 항목 PASS 시에만 PASS) | ❌ |\n| T-708 | 기준 A·B 결과 상이 건 식별 및 표시 | ❌ |\n| T-709 | 판정 근거(측정값·적용 기준·비교 결과) 및 규정 버전 반환 | ❌ |\n| T-710 | 경계값 입력에 대한 판정 검증 (2.404000 GHz·2.406000 GHz·700.00 µW) | ❌ |\n| T-711 | 동일 입력·동일 설정에서 판정 결과 재현 확인 | ❌ |\n\n## Phase-08 다건 처리 및 보정 UI\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-801 | 다건 일괄 처리 및 개별 실패가 전체를 중단시키지 않는 동작 구현 | ❌ |\n| T-802 | 처리 진행 상태·잔여 건수 표시 | ❌ |\n| T-803 | 판정 결과 목록 및 상태별 건수 표시 | ❌ |\n| T-804 | 개별 건 상세: 원본 이미지, 추출값, 정규화값, 기준 A·B 근거 표시 | ❌ |\n| T-805 | 추출값 수동 수정 입력 및 수정 후 재판정 | ❌ |\n| T-806 | 수동 보정 여부 표시 | ❌ |\n| T-807 | Limit·CF 수정값의 판정 즉시 반영 | ❌ |\n| T-808 | 결과 미저장 안내 문구 표시 (새로고침 시 소실) | ❌ |\n\n## Phase-09 docx 보고서 생성\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-901 | 서식의 머리말 플레이스홀더 치환 (문서번호·시험일·시험명·담당자·규격·시료명·CF) | ❌ |\n| T-902 | 적용 규격 기본값 및 시험일·생성일시 자동 기입 | ❌ |\n| T-903 | 판정 요약 치환, PASS·FAIL 건수는 보류 제외 집계 | ❌ |\n| T-904 | 측정 결과 표 행 반복 생성 (PASS·FAIL·보류 전 건 포함) | ❌ |\n| T-905 | 특이사항 기재: 규정 버전, 보류 건 목록, 기준 A·B 상이 건 | ❌ |\n| T-906 | 작성자·검토자 치환, 원본 이미지 미첨부 확인 | ❌ |\n| T-907 | 파일명 규칙 `judgment-report_YYYYMMDD-HHMMSS.docx` 적용 | ❌ |\n| T-908 | 생성 파일을 `Module_2/project/output` 저장 및 다운로드 제공 | ❌ |\n| T-909 | 서식 표 구조·문구 미변경 확인 (원본과 비교) | ❌ |\n| T-910 | 생성 docx의 Word 정상 열림 및 한글 표시 확인 | ❌ |\n\n## Phase-10 통합 검증 및 정리\n\n| ID | 과제 | 상태 |\n|---|---|---|\n| T-1001 | 샘플 20장 일괄 처리 → 검토 → 보고서 생성 전 과정 확인 | ❌ |\n| T-1002 | 손상 파일·미지원 형식 혼합 시 나머지 처리 지속 확인 | ❌ |\n| T-1003 | 네트워크 차단 상태에서 전 기능 동작 확인 (오프라인 요건) | ❌ |\n| T-1004 | 375px·1280px 화면에서 결과 표 가로 스크롤 및 라벨 표시 확인 | ❌ |\n| T-1005 | 키보드 조작·포커스 표시·오류 안내 전달 확인 | ❌ |\n| T-1006 | BE 중지·잘못된 주소 시 실패 표시 및 복구 확인 | ❌ |\n| T-1007 | 테스트용 프로세스 종료 (Vite 5173, uvicorn 8000) | ❌ |\n| T-1008 | 검증 결과·미검증 항목 기록, PRD 미확정 사항 갱신 | ❌ |\n\n## 확인 필요 사항\n\n- CF 0 dB 확정, Limit 기본값 54 dBµV/m은 적용 대역 확인 필요\n- 형식 검증이 1차 기준, 신뢰도는 보조 기준 (마스킹 이미지는 신뢰도로 구분 불가)\n"}]</script>
+<script type="application/json" id="links-data">[["PRD 디자인 시안", "Module_2/docs/prd-view.html", "별도 페이지로 열기"]]</script>
+<script>
+const DOCS = JSON.parse(document.getElementById('docs-data').textContent);
+const LINKS = JSON.parse(document.getElementById('links-data').textContent);
+
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+// 인라인: 코드 → 굵게 → 링크 순으로 처리
+// MARK: 문서 원문에 등장하지 않는 자리표시자 문자
+const MARK = String.fromCharCode(1);
+const MARK_RE = new RegExp(MARK + '(' + String.fromCharCode(92) + 'd+)' + MARK, 'g');
+
+function inline(s){
+  const codes = [];
+  s = esc(s).replace(/`([^`]+)`/g, (_, c) => MARK + (codes.push(c) - 1) + MARK);
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  return s.replace(MARK_RE, (_, i) => '<code>' + codes[i] + '</code>');
+}
+
+const splitRow = line => line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+const isNumeric = v => /^[-+]?[\d,]+(\.\d+)?$/.test(v.trim());
+
+// 지원 문법: h1~h3, 표, 중첩 목록, 문단, 구분선
+function render(md){
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  let out = '', para = [], depthOpen = 0;
+
+  const closeList = () => { while (depthOpen > 0) { out += '</ul>'; depthOpen--; } };
+  const flushPara = () => {
+    if (para.length) { out += '<p>' + inline(para.join(' ')) + '</p>'; para = []; }
+  };
+  const flush = () => { flushPara(); closeList(); };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (!line.trim()) { flush(); continue; }
+
+    const head = line.match(/^(#{1,3})\s+(.*)$/);
+    if (head) {
+      flush();
+      const lv = head[1].length;
+      out += '<h' + lv + '>' + inline(head[2]) + '</h' + lv + '>';
+      continue;
+    }
+
+    if (/^---+$/.test(line.trim())) { flush(); out += '<hr>'; continue; }
+
+    // 표: 헤더 행 바로 뒤에 구분 행이 있을 때만 표로 처리
+    if (line.trim().startsWith('|') && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) {
+      flush();
+      const cols = splitRow(line);
+      const rows = [];
+      i += 2;
+      while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(splitRow(lines[i++]));
+      i--;
+      out += '<div class="tablewrap"><table><thead><tr>'
+        + cols.map(c => '<th>' + inline(c) + '</th>').join('')
+        + '</tr></thead><tbody>'
+        + rows.map(r => '<tr>' + r.map(c =>
+            '<td' + (isNumeric(c) ? ' class="num"' : '') + '>' + inline(c) + '</td>').join('') + '</tr>').join('')
+        + '</tbody></table></div>';
+      continue;
+    }
+
+    const item = line.match(/^(\s*)[-*]\s+(.*)$/);
+    if (item) {
+      flushPara();
+      const depth = Math.floor(item[1].length / 2) + 1;
+      while (depthOpen < depth) { out += '<ul>'; depthOpen++; }
+      while (depthOpen > depth) { out += '</ul>'; depthOpen--; }
+      out += '<li>' + inline(item[2]) + '</li>';
+      continue;
+    }
+
+    closeList();
+    para.push(line.trim());
+  }
+  flush();
+  return out;
+}
+
+const nav = document.getElementById('nav');
+let lastGroup = null;
+for (const d of DOCS) {
+  if (d.group !== lastGroup) {
+    const h = document.createElement('p');
+    h.className = 'navgroup';
+    h.textContent = d.group;
+    nav.appendChild(h);
+    lastGroup = d.group;
+  }
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'navbtn';
+  b.dataset.key = d.key;
+  b.textContent = d.title;
+  b.addEventListener('click', () => { location.hash = d.key; });
+  nav.appendChild(b);
+}
+
+const linkBox = document.getElementById('links');
+for (const item of LINKS) {
+  const a = document.createElement('a');
+  a.className = 'extlink';
+  a.href = item[1];
+  a.textContent = item[0];
+  a.title = item[2];
+  linkBox.appendChild(a);
+}
+
+const view = document.getElementById('doc');
+function show(key, focus) {
+  const d = DOCS.find(x => x.key === key) || DOCS[0];
+  view.innerHTML = '<p class="docpath">' + esc(d.path) + '</p>' + render(d.text);
+  document.title = d.title + ' — Mkr1 OCR 판정 도구';
+  for (const b of nav.querySelectorAll('.navbtn')) {
+    if (b.dataset.key === d.key) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  }
+  if (focus) view.focus();
+}
+
+window.addEventListener('hashchange', () => show(location.hash.slice(1), true));
+show(location.hash.slice(1), false);
+
+// 테마 전환 — 저장이 막혀 있어도 페이지는 그대로 동작
+const themeBtn = document.getElementById('theme');
+try {
+  const saved = localStorage.getItem('doc-theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+} catch (e) {}
+themeBtn.addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme;
+  const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('doc-theme', next); } catch (e) {}
+});
+</script>
+</body>
+</html>

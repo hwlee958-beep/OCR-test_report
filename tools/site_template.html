@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mkr1 OCR 판정 도구 — 문서 모음</title>
+<style>
+:root{
+  --ground:#F1F4F2; --surface:#FFFFFF; --surface-2:#E9EEEB;
+  --line:#D5DCD8; --line-soft:#E4EAE6;
+  --ink:#131917; --ink-2:#48544F; --ink-3:#6E7A75;
+  --accent:#17604E; --accent-wash:#DEEAE5;
+  --sans:"IBM Plex Sans KR","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","Consolas",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0E1211; --surface:#161B1A; --surface-2:#1D2422;
+  --line:#2C3532; --line-soft:#232B29;
+  --ink:#E7EDEA; --ink-2:#A9B5B0; --ink-3:#85938D;
+  --accent:#5FCBA9; --accent-wash:#17302A;
+}}
+:root[data-theme="dark"]{
+  --ground:#0E1211; --surface:#161B1A; --surface-2:#1D2422;
+  --line:#2C3532; --line-soft:#232B29;
+  --ink:#E7EDEA; --ink-2:#A9B5B0; --ink-3:#85938D;
+  --accent:#5FCBA9; --accent-wash:#17302A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.72;overflow-wrap:anywhere}
+a{color:var(--accent);text-underline-offset:3px}
+.wrap{display:grid;grid-template-columns:264px minmax(0,1fr);gap:24px;
+  max-width:1200px;margin:0 auto;padding:24px;align-items:start}
+.side{position:sticky;top:24px;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:20px}
+.brand{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
+.brand-sub{color:var(--ink-3);font-size:13px;margin:0 0 16px}
+.navgroup{color:var(--ink-3);font-size:12px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;margin:16px 0 6px}
+.navbtn{display:block;width:100%;text-align:left;min-height:44px;padding:10px 12px;
+  border:1px solid transparent;border-radius:8px;background:none;color:var(--ink-2);
+  font:inherit;font-size:14px;cursor:pointer}
+.navbtn:hover{background:var(--surface-2);color:var(--ink)}
+.navbtn[aria-current="page"]{background:var(--accent-wash);color:var(--accent);
+  border-color:var(--line-soft);font-weight:600}
+.navbtn:focus-visible,.themebtn:focus-visible,.extlink:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+.extlink{display:block;padding:10px 12px;font-size:14px;border-radius:8px}
+.extlink:hover{background:var(--surface-2)}
+.themebtn{margin-top:18px;width:100%;min-height:44px;border:1px solid var(--line);
+  border-radius:8px;background:var(--surface);color:var(--ink-2);font:inherit;
+  font-size:14px;cursor:pointer}
+.themebtn:hover{background:var(--surface-2)}
+.doc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px}
+.docpath{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:0 0 18px;
+  padding-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.doc h1{font-size:25px;font-weight:600;letter-spacing:-.015em;margin:0 0 16px;text-wrap:balance}
+.doc h2{font-size:19px;font-weight:600;margin:32px 0 12px;padding-top:16px;
+  border-top:1px solid var(--line-soft);text-wrap:balance}
+.doc h3{font-size:16px;font-weight:600;margin:22px 0 8px}
+.doc p{margin:0 0 12px}
+.doc ul{margin:0 0 12px;padding-left:20px}
+.doc li{margin:3px 0}
+.doc li>ul{margin:3px 0}
+.doc code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);
+  border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px}
+.doc hr{border:0;border-top:1px solid var(--line-soft);margin:24px 0}
+.tablewrap{overflow-x:auto;margin:0 0 16px}
+.doc table{border-collapse:collapse;width:100%;font-size:14px}
+.doc th,.doc td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+.doc th{background:var(--surface-2);font-weight:600;white-space:nowrap}
+.doc td.num{text-align:right;font-variant-numeric:tabular-nums}
+.foot{color:var(--ink-3);font-size:13px;margin-top:16px;padding:0 4px}
+@media (max-width:860px){
+  .wrap{grid-template-columns:1fr;gap:16px;padding:16px}
+  .side{position:static}
+  .doc{padding:18px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="side" aria-label="문서 목록">
+    <p class="brand">Mkr1 OCR 판정 도구</p>
+    <p class="brand-sub">작업 문서 모음</p>
+    <div id="nav"></div>
+    <p class="navgroup">별도 페이지</p>
+    <div id="links"></div>
+    <button class="themebtn" id="theme" type="button">테마 전환</button>
+  </nav>
+  <main>
+    <article class="doc" id="doc" tabindex="-1"></article>
+    <p class="foot">생성일 __BUILT_AT__ · 원본은 저장소의 마크다운 파일이며 이 페이지는 <code>tools/build_site.py</code>로 재생성</p>
+  </main>
+</div>
+
+<script type="application/json" id="docs-data">__DOCS_JSON__</script>
+<script type="application/json" id="links-data">__LINKS_JSON__</script>
+<script>
+const DOCS = JSON.parse(document.getElementById('docs-data').textContent);
+const LINKS = JSON.parse(document.getElementById('links-data').textContent);
+
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+// 인라인: 코드 → 굵게 → 링크 순으로 처리
+// MARK: 문서 원문에 등장하지 않는 자리표시자 문자
+const MARK = String.fromCharCode(1);
+const MARK_RE = new RegExp(MARK + '(' + String.fromCharCode(92) + 'd+)' + MARK, 'g');
+
+function inline(s){
+  const codes = [];
+  s = esc(s).replace(/`([^`]+)`/g, (_, c) => MARK + (codes.push(c) - 1) + MARK);
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  return s.replace(MARK_RE, (_, i) => '<code>' + codes[i] + '</code>');
+}
+
+const splitRow = line => line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+const isNumeric = v => /^[-+]?[\d,]+(\.\d+)?$/.test(v.trim());
+
+// 지원 문법: h1~h3, 표, 중첩 목록, 문단, 구분선
+function render(md){
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  let out = '', para = [], depthOpen = 0;
+
+  const closeList = () => { while (depthOpen > 0) { out += '</ul>'; depthOpen--; } };
+  const flushPara = () => {
+    if (para.length) { out += '<p>' + inline(para.join(' ')) + '</p>'; para = []; }
+  };
+  const flush = () => { flushPara(); closeList(); };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (!line.trim()) { flush(); continue; }
+
+    const head = line.match(/^(#{1,3})\s+(.*)$/);
+    if (head) {
+      flush();
+      const lv = head[1].length;
+      out += '<h' + lv + '>' + inline(head[2]) + '</h' + lv + '>';
+      continue;
+    }
+
+    if (/^---+$/.test(line.trim())) { flush(); out += '<hr>'; continue; }
+
+    // 표: 헤더 행 바로 뒤에 구분 행이 있을 때만 표로 처리
+    if (line.trim().startsWith('|') && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) {
+      flush();
+      const cols = splitRow(line);
+      const rows = [];
+      i += 2;
+      while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(splitRow(lines[i++]));
+      i--;
+      out += '<div class="tablewrap"><table><thead><tr>'
+        + cols.map(c => '<th>' + inline(c) + '</th>').join('')
+        + '</tr></thead><tbody>'
+        + rows.map(r => '<tr>' + r.map(c =>
+            '<td' + (isNumeric(c) ? ' class="num"' : '') + '>' + inline(c) + '</td>').join('') + '</tr>').join('')
+        + '</tbody></table></div>';
+      continue;
+    }
+
+    const item = line.match(/^(\s*)[-*]\s+(.*)$/);
+    if (item) {
+      flushPara();
+      const depth = Math.floor(item[1].length / 2) + 1;
+      while (depthOpen < depth) { out += '<ul>'; depthOpen++; }
+      while (depthOpen > depth) { out += '</ul>'; depthOpen--; }
+      out += '<li>' + inline(item[2]) + '</li>';
+      continue;
+    }
+
+    closeList();
+    para.push(line.trim());
+  }
+  flush();
+  return out;
+}
+
+const nav = document.getElementById('nav');
+let lastGroup = null;
+for (const d of DOCS) {
+  if (d.group !== lastGroup) {
+    const h = document.createElement('p');
+    h.className = 'navgroup';
+    h.textContent = d.group;
+    nav.appendChild(h);
+    lastGroup = d.group;
+  }
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'navbtn';
+  b.dataset.key = d.key;
+  b.textContent = d.title;
+  b.addEventListener('click', () => { location.hash = d.key; });
+  nav.appendChild(b);
+}
+
+const linkBox = document.getElementById('links');
+for (const item of LINKS) {
+  const a = document.createElement('a');
+  a.className = 'extlink';
+  a.href = item[1];
+  a.textContent = item[0];
+  a.title = item[2];
+  linkBox.appendChild(a);
+}
+
+const view = document.getElementById('doc');
+function show(key, focus) {
+  const d = DOCS.find(x => x.key === key) || DOCS[0];
+  view.innerHTML = '<p class="docpath">' + esc(d.path) + '</p>' + render(d.text);
+  document.title = d.title + ' — Mkr1 OCR 판정 도구';
+  for (const b of nav.querySelectorAll('.navbtn')) {
+    if (b.dataset.key === d.key) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  }
+  if (focus) view.focus();
+}
+
+window.addEventListener('hashchange', () => show(location.hash.slice(1), true));
+show(location.hash.slice(1), false);
+
+// 테마 전환 — 저장이 막혀 있어도 페이지는 그대로 동작
+const themeBtn = document.getElementById('theme');
+try {
+  const saved = localStorage.getItem('doc-theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+} catch (e) {}
+themeBtn.addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme;
+  const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('doc-theme', next); } catch (e) {}
+});
+</script>
+</body>
+</html>
