@@ -1,0 +1,374 @@
+<title>Mkr1 판정 도구 명세</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F1F4F2; --surface:#FFFFFF; --surface-2:#E9EEEB;
+  --line:#D5DCD8; --line-soft:#E4EAE6;
+  --ink:#131917; --ink-2:#48544F; --ink-3:#6E7A75;
+  --accent:#17604E; --accent-2:#0E4638; --accent-wash:#DEEAE5;
+  --pass:#1B6E45; --fail:#A32017; --hold:#845707;
+  --pass-bg:#DDEDE3; --fail-bg:#F6E1DE; --hold-bg:#F3E9D3;
+  --screen:#0B0F0E; --trace:#C9C232; --mkr:#3DDC84;
+  --sans:"IBM Plex Sans KR","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","Consolas",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1211; --surface:#161B1A; --surface-2:#1D2422;
+    --line:#2C3532; --line-soft:#232B29;
+    --ink:#E7EDEA; --ink-2:#A9B5B0; --ink-3:#85938D;
+    --accent:#5FCBA9; --accent-2:#8BDCC1; --accent-wash:#17302A;
+    --pass:#5FCB92; --fail:#F0857A; --hold:#E0B25C;
+    --pass-bg:#152A20; --fail-bg:#2E1A18; --hold-bg:#2B2213;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1211; --surface:#161B1A; --surface-2:#1D2422;
+  --line:#2C3532; --line-soft:#232B29;
+  --ink:#E7EDEA; --ink-2:#A9B5B0; --ink-3:#85938D;
+  --accent:#5FCBA9; --accent-2:#8BDCC1; --accent-wash:#17302A;
+  --pass:#5FCB92; --fail:#F0857A; --hold:#E0B25C;
+  --pass-bg:#152A20; --fail-bg:#2E1A18; --hold-bg:#2B2213;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-weight:400;
+  font-size:15px;line-height:1.72;-webkit-font-smoothing:antialiased;overflow-wrap:anywhere}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:600;letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+/* ---------- masthead ---------- */
+.masthead{border-bottom:1px solid var(--line);background:var(--surface)}
+.masthead-in{max-width:1180px;margin:0 auto;padding:44px 24px 34px;
+  display:grid;gap:30px;grid-template-columns:minmax(0,1fr)}
+.eyebrow{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.eyebrow span{color:var(--ink-3)}
+h1{font-size:clamp(30px,4.6vw,44px);line-height:1.16;margin:14px 0 12px;font-weight:700}
+.lede{color:var(--ink-2);max-width:62ch;font-size:16px}
+.meta{display:flex;flex-wrap:wrap;gap:0;margin-top:26px;border-top:1px solid var(--line-soft)}
+.meta div{padding:12px 26px 0 0;margin-right:26px;border-right:1px solid var(--line-soft)}
+.meta div:last-child{border-right:0}
+.meta dt{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+  font-family:var(--mono)}
+.meta dd{margin:2px 0 0;font-size:14.5px;font-weight:500}
+
+/* ---------- shell ---------- */
+.shell{max-width:1180px;margin:0 auto;padding:0 24px 80px;
+  display:grid;gap:48px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:1000px){
+  .shell{grid-template-columns:196px minmax(0,1fr);gap:56px;align-items:start}
+  nav.toc{position:sticky;top:24px;padding-top:44px}
+}
+nav.toc{padding-top:32px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+nav.toc a{display:flex;gap:10px;padding:5px 0;color:var(--ink-2);text-decoration:none;font-size:13.5px}
+nav.toc a:hover{color:var(--accent)}
+nav.toc b{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--ink-3);padding-top:2px}
+main{padding-top:32px;display:flex;flex-direction:column;gap:56px;min-width:0}
+@media (min-width:1000px){main{padding-top:44px}}
+
+section{scroll-margin-top:20px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.sec-head{display:flex;align-items:baseline;gap:12px;padding-bottom:10px;border-bottom:2px solid var(--ink)}
+.sec-head b{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600}
+h2{font-size:20px}
+h3{font-size:15.5px;margin-top:6px;color:var(--ink)}
+.note{color:var(--ink-2);font-size:14.5px;max-width:66ch}
+
+ul.tight{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;
+  color:var(--ink-2);font-size:14.5px;max-width:70ch}
+ul.tight strong{color:var(--ink);font-weight:500}
+
+/* ---------- scope columns ---------- */
+.scope{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:760px){.scope{grid-template-columns:1fr 1fr}}
+.scope > div{border:1px solid var(--line);background:var(--surface);padding:20px 22px;border-radius:2px}
+.scope h3{margin:0 0 12px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  font-family:var(--mono);color:var(--ink-3)}
+.scope.in h3{color:var(--accent)}
+.scope ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px}
+.scope li{display:flex;gap:9px;color:var(--ink-2)}
+.scope li::before{content:"";flex:0 0 5px;height:5px;margin-top:9px;border-radius:50%;background:var(--accent)}
+.scope div.out li::before{background:var(--ink-3);border-radius:0;height:1px;margin-top:11px;flex-basis:7px}
+
+/* ---------- criteria ---------- */
+.crit{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:820px){.crit{grid-template-columns:1fr 1fr}}
+.crit article{border:1px solid var(--line);border-top:3px solid var(--accent);
+  background:var(--surface);padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.crit h3{margin:0;font-size:15px}
+.crit .src{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.formula{font-family:var(--mono);font-size:13px;background:var(--surface-2);
+  border-left:2px solid var(--accent);padding:10px 12px;color:var(--ink);
+  display:flex;flex-direction:column;gap:5px;overflow-x:auto}
+.rule{display:flex;gap:10px;font-size:13.5px;color:var(--ink-2);align-items:baseline}
+.rule code{font-family:var(--mono);font-size:12px;color:var(--accent);flex:0 0 auto}
+
+/* ---------- readout (instrument) ---------- */
+.readout{background:var(--screen);border:1px solid var(--line);padding:18px 20px;
+  display:flex;flex-wrap:wrap;gap:8px 32px;align-items:baseline;border-radius:2px}
+.readout .label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:#7E8B85}
+.readout .val{font-family:var(--mono);font-size:19px;color:var(--mkr);font-weight:500;
+  font-variant-numeric:tabular-nums}
+.readout .val.trace{color:var(--trace)}
+
+/* ---------- tables ---------- */
+.scroller{overflow-x:auto;border:1px solid var(--line);background:var(--surface);border-radius:2px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+caption{text-align:left;padding:14px 18px 0;font-size:13px;color:var(--ink-3)}
+th,td{padding:9px 14px;border-bottom:1px solid var(--line-soft);text-align:left;vertical-align:top}
+thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500;background:var(--surface-2);
+  border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.id{font-family:var(--mono);color:var(--ink-3);white-space:nowrap}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;
+  letter-spacing:.06em;padding:2px 8px;border-radius:2px;white-space:nowrap}
+.pass{color:var(--pass);background:var(--pass-bg)}
+.fail{color:var(--fail);background:var(--fail-bg)}
+.hold{color:var(--hold);background:var(--hold-bg)}
+
+/* ---------- stat strip ---------- */
+.stats{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);
+  grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:700px){.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.stats div{background:var(--surface);padding:16px 18px}
+.stats dt{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.stats dd{margin:6px 0 0;font-family:var(--mono);font-size:26px;font-weight:500;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.stats dd small{font-size:14px;color:var(--ink-3);font-weight:400}
+
+/* ---------- phases ---------- */
+.phases{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
+.phase{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;
+  padding:14px 0;border-bottom:1px solid var(--line-soft)}
+@media (min-width:700px){.phase{grid-template-columns:74px 1fr 108px;gap:18px;align-items:baseline}}
+.phase b{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600}
+.phase p{font-size:14.5px;color:var(--ink-2)}
+.phase p strong{color:var(--ink);font-weight:500;display:block}
+.phase .cnt{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+@media (min-width:700px){.phase .cnt{text-align:right}}
+
+.open{border:1px solid var(--hold);background:var(--hold-bg);padding:18px 20px;
+  display:flex;flex-direction:column;gap:8px;border-radius:2px}
+.open h3{margin:0;font-size:14.5px;color:var(--hold)}
+.open p{font-size:14px;color:var(--ink-2)}
+
+footer{border-top:1px solid var(--line);background:var(--surface)}
+.foot-in{max-width:1180px;margin:0 auto;padding:26px 24px 40px;display:flex;
+  flex-wrap:wrap;gap:8px 28px;font-size:13px;color:var(--ink-3);font-family:var(--mono)}
+</style>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <div>
+      <div class="eyebrow">Module_2 <span>·</span> 기능명세 <span>·</span> 2026-09-10</div>
+      <h1>시험 이미지 OCR 기반<br>PASS / FAIL 판정</h1>
+      <p class="lede">스펙트럼 분석기 화면 캡처에서 Mkr1 주파수·전력을 읽어내고, 판정 규정과 보고서 서식 두 기준으로 합격 여부를 산출한 뒤 docx 보고서 1건으로 취합하는 도구의 기능명세.</p>
+      <dl class="meta">
+        <div><dt>Frontend</dt><dd>Vite + TypeScript + React</dd></div>
+        <div><dt>Backend</dt><dd>FastAPI · DB 미사용</dd></div>
+        <div><dt>OCR</dt><dd>RapidOCR (로컬 실행)</dd></div>
+        <div><dt>산출물</dt><dd>docx 보고서</dd></div>
+      </dl>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="toc" aria-label="문서 목차">
+    <ol>
+      <li><a href="#scope"><b>01</b>범위</a></li>
+      <li><a href="#extract"><b>02</b>추출</a></li>
+      <li><a href="#criteria"><b>03</b>판정 기준</a></li>
+      <li><a href="#result"><b>04</b>검증 결과</a></li>
+      <li><a href="#report"><b>05</b>보고서</a></li>
+      <li><a href="#tasks"><b>06</b>개발 단계</a></li>
+      <li><a href="#open"><b>07</b>미확정</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section id="scope">
+      <div class="sec-head"><b>01</b><h2>범위</h2></div>
+      <p class="note">이미지 다건을 한 번에 올려 판정하고 결과를 보고서로 내보내는 흐름까지가 대상. 판정 이력 저장과 인증은 제외하며, 결과는 보고서로만 보존.</p>
+      <div class="scope in">
+        <div>
+          <h3>In Scope</h3>
+          <ul>
+            <li>이미지 다건 일괄 업로드 (png · jpg)</li>
+            <li>Mkr1 주파수 · 전력 OCR 추출</li>
+            <li>단위 정규화 (GHz/MHz/Hz · µW/mW/dBm)</li>
+            <li>규정 기준 · 서식 기준 판정 병행 산출</li>
+            <li>추출 실패 값의 수동 보정 후 재판정</li>
+            <li>판정 보류 상태 별도 구분</li>
+            <li>서식 기반 docx 보고서 1건 취합</li>
+          </ul>
+        </div>
+        <div class="out">
+          <h3>Out of Scope</h3>
+          <ul>
+            <li>그래프 곡선 형상 자체의 분석</li>
+            <li>시험 장비 직접 연동 · 실시간 측정</li>
+            <li>판정 이력 저장 및 과거 결과 재조회</li>
+            <li>Mkr1 외 항목(Span · RBW · Atten) 판정</li>
+            <li>사용자 인증 · 권한 관리</li>
+            <li>보고서 내 원본 이미지 첨부</li>
+            <li>보고서 서식 구조 변경</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="extract">
+      <div class="sec-head"><b>02</b><h2>추출</h2></div>
+      <p class="note">판정 대상은 화면 우상단 마커 판독값 2종. 화면 설정값(Center Freq · Span · RBW)은 추출하되 판정에는 쓰지 않음.</p>
+      <div class="readout">
+        <span class="label">Mkr1</span>
+        <span class="val">2.405095 GHz</span>
+        <span class="val">641.83 µW</span>
+        <span class="label">Ref</span>
+        <span class="val trace">10.00 mW</span>
+      </div>
+      <h3>확인 필요 처리 조건</h3>
+      <ul class="tight">
+        <li><strong>값 문자열 미검출</strong> — Mkr1 라벨은 읽혔으나 숫자가 없는 경우</li>
+        <li><strong>형식 불일치 · 단위 누락</strong> — 소수점 앞 자릿수가 잘린 부분 인식값 포함</li>
+        <li><strong>물리적으로 성립하지 않는 값</strong> — 전력 0 이하는 FAIL이 아닌 보류</li>
+        <li><strong>인식 신뢰도 0.60 미만</strong> — 형식 검증이 1차 기준, 신뢰도는 보조</li>
+      </ul>
+      <p class="note">Mkr1과 같은 행에 놓인 <code>Ref 10.00 mW</code>가 전력값으로 잘못 읽히므로, 마커 라벨 기준 우측·하단 위치 제약을 함께 적용.</p>
+    </section>
+
+    <section id="criteria">
+      <div class="sec-head"><b>03</b><h2>판정 기준</h2></div>
+      <p class="note">두 기준을 동시에 적용하고 결과를 각각 표시. 종합 판정은 양쪽 전 항목이 PASS일 때만 PASS이며, 두 결과가 엇갈린 건은 보고서 특이사항에 기재.</p>
+      <div class="crit">
+        <article>
+          <h3>기준 A · 판정 규정</h3>
+          <p class="src">module_1/docs/pass-fail-rules.md</p>
+          <div class="rule"><code>FREQ-01</code><span>2.404000 GHz ≤ f ≤ 2.406000 GHz</span></div>
+          <div class="rule"><code>POWER-01</code><span>0 &lt; P ≤ 700.00 µW</span></div>
+          <p class="note" style="font-size:13.5px">경계값 2.404000 · 2.406000 GHz · 700.00 µW는 모두 PASS.</p>
+        </article>
+        <article>
+          <h3>기준 B · 보고서 서식</h3>
+          <p class="src">module_1/data/report_template.docx</p>
+          <div class="formula">
+            <span>측정값(dBµV/m) = 10·log10(µW / 1000) + 107 + CF</span>
+            <span>마진(dB) = Limit − 측정값 &nbsp;→&nbsp; 마진 ≥ 0 : PASS</span>
+          </div>
+          <div class="rule"><code>Limit</code><span>54 dBµV/m (기본값, 화면에서 수정 가능)</span></div>
+          <div class="rule"><code>CF</code><span>0 dB (무보정 기준)</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="result">
+      <div class="sec-head"><b>04</b><h2>검증 결과</h2></div>
+      <p class="note">착수 전 사전 검증. 샘플 20장에 로컬 OCR을 적용해 추출값을 화면 표기값과 대조하고 기준 A 판정까지 산출.</p>
+      <dl class="stats">
+        <div><dt>추출 성공</dt><dd>18<small> / 20</small></dd></div>
+        <div><dt>오추출</dt><dd>0<small> 건</small></dd></div>
+        <div><dt>주파수 신뢰도</dt><dd>0.86<small> ~ 0.92</small></dd></div>
+        <div><dt>전력 신뢰도</dt><dd>0.72<small> ~ 0.85</small></dd></div>
+      </dl>
+      <div class="scroller">
+        <table>
+          <caption>샘플 20장 추출값 및 기준 A 판정 결과 — 확인 필요 2건은 값 일부가 가려진 이미지</caption>
+          <thead>
+            <tr>
+              <th>파일</th><th class="num">주파수 (GHz)</th><th class="num">전력 (µW)</th>
+              <th>FREQ-01</th><th>POWER-01</th><th>종합</th><th>비고</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="id">img_01</td><td class="num">2.405095</td><td class="num">641.83</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td></td></tr>
+            <tr><td class="id">img_02</td><td class="num">2.404250</td><td class="num">520.00</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td></td></tr>
+            <tr><td class="id">img_03</td><td class="num">2.404750</td><td class="num">385.50</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td></td></tr>
+            <tr><td class="id">img_04</td><td class="num">2.405250</td><td class="num">675.25</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td></td></tr>
+            <tr><td class="id">img_05</td><td class="num">2.405750</td><td class="num">450.80</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td></td></tr>
+            <tr><td class="id">img_06</td><td class="num">2.405900</td><td class="num">699.50</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td></td></tr>
+            <tr><td class="id">img_07</td><td class="num">2.405095</td><td class="num">820.00</td><td><span class="pill pass">PASS</span></td><td><span class="pill fail">FAIL</span></td><td><span class="pill fail">FAIL</span></td><td>전력 상한 초과</td></tr>
+            <tr><td class="id">img_08</td><td class="num">2.404600</td><td class="num">950.00</td><td><span class="pill pass">PASS</span></td><td><span class="pill fail">FAIL</span></td><td><span class="pill fail">FAIL</span></td><td>전력 상한 초과</td></tr>
+            <tr><td class="id">img_09</td><td class="num">2.403500</td><td class="num">610.00</td><td><span class="pill fail">FAIL</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill fail">FAIL</span></td><td>하한 미만</td></tr>
+            <tr><td class="id">img_10</td><td class="num">2.407000</td><td class="num">620.00</td><td><span class="pill fail">FAIL</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill fail">FAIL</span></td><td>상한 초과</td></tr>
+            <tr><td class="id">img_11</td><td class="num">2.403000</td><td class="num">780.00</td><td><span class="pill fail">FAIL</span></td><td><span class="pill fail">FAIL</span></td><td><span class="pill fail">FAIL</span></td><td>두 항목 이탈</td></tr>
+            <tr><td class="id">img_12</td><td class="num">2.407500</td><td class="num">880.00</td><td><span class="pill fail">FAIL</span></td><td><span class="pill fail">FAIL</span></td><td><span class="pill fail">FAIL</span></td><td>두 항목 이탈</td></tr>
+            <tr><td class="id">img_13</td><td class="num">2.404000</td><td class="num">700.00</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td>하한 경계값</td></tr>
+            <tr><td class="id">img_14</td><td class="num">2.406000</td><td class="num">700.00</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td>상한 경계값</td></tr>
+            <tr><td class="id">img_15</td><td class="num">2.406001</td><td class="num">650.00</td><td><span class="pill fail">FAIL</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill fail">FAIL</span></td><td>경계 1 Hz 초과</td></tr>
+            <tr><td class="id">img_16</td><td class="num">2.405000</td><td class="num">700.01</td><td><span class="pill pass">PASS</span></td><td><span class="pill fail">FAIL</span></td><td><span class="pill fail">FAIL</span></td><td>경계 0.01 µW 초과</td></tr>
+            <tr><td class="id">img_17</td><td class="num">2.405095</td><td class="num">641.83</td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td><span class="pill pass">PASS</span></td><td>0.64183 mW 표기 변환</td></tr>
+            <tr><td class="id">img_18</td><td class="num">2.405500</td><td class="num">820.00</td><td><span class="pill pass">PASS</span></td><td><span class="pill fail">FAIL</span></td><td><span class="pill fail">FAIL</span></td><td>0.82000 mW 표기 변환</td></tr>
+            <tr><td class="id">img_19</td><td class="num">—</td><td class="num">—</td><td>—</td><td>—</td><td><span class="pill hold">보류</span></td><td>전력 표기 일부 가림</td></tr>
+            <tr><td class="id">img_20</td><td class="num">—</td><td class="num">—</td><td>—</td><td>—</td><td><span class="pill hold">보류</span></td><td>주파수 표기 일부 가림</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">기준 A 집계: PASS 9 · FAIL 9 · 보류 2. 가려진 값의 부분 인식은 신뢰도로 구분되지 않으므로(정상 건과 동일한 0.72대) 형식 검증으로 차단.</p>
+    </section>
+
+    <section id="report">
+      <div class="sec-head"><b>05</b><h2>보고서</h2></div>
+      <p class="note">서식의 표 구조와 문구는 바꾸지 않고 플레이스홀더 값만 채워 생성. 업로드 건 전체를 취합해 docx 1건으로 출력.</p>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>구역</th><th>채워지는 값</th><th>입력 주체</th></tr></thead>
+          <tbody>
+            <tr><td>머리말</td><td>문서번호 · 시험일 · 시험명 · 담당자 · 적용 규격 · 시료명 · CF</td><td>사용자 입력 (시험일 자동)</td></tr>
+            <tr><td>판정 요약</td><td>총 건수 · PASS · FAIL · 종합판정</td><td>자동 (보류 건 제외 집계)</td></tr>
+            <tr><td>측정 결과</td><td>주파수 · 전력 · dBm · dBµV/m · Limit · 마진 · 판정</td><td>자동 (보류 포함 전 건)</td></tr>
+            <tr><td>특이사항</td><td>규정 버전 · 보류 건 목록 · 기준 A·B 상이 건</td><td>자동</td></tr>
+            <tr><td>서명</td><td>작성자 · 검토자</td><td>사용자 입력</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="tight">
+        <li>파일명 규칙 <strong>judgment-report_YYYYMMDD-HHMMSS.docx</strong>, 저장 위치 <strong>project/output</strong></li>
+        <li>적용 규격 기본값 <strong>FCC Part 15 Subpart B Class B (3 m)</strong></li>
+        <li>판정 결과는 서버에 저장하지 않으므로 <strong>새로고침 시 소실</strong>됨을 화면에서 안내</li>
+      </ul>
+    </section>
+
+    <section id="tasks">
+      <div class="sec-head"><b>06</b><h2>개발 단계</h2></div>
+      <p class="note">UI-First 원칙에 따라 화면과 연동 경로를 먼저 세우고, 이후 추출·판정·보고서를 구현. 총 80개 과제.</p>
+      <div class="phases">
+        <div class="phase"><b>Phase 01</b><p><strong>프로젝트 스캐폴드</strong>FE·BE 디렉터리, 실행 배치 스크립트, DB 미사용 확인</p><span class="cnt">6 과제</span></div>
+        <div class="phase"><b>Phase 02</b><p><strong>라이브러리 검증</strong>OCR 엔진 · docx 처리 · 이미지 로드 동작 확인</p><span class="cnt">7 과제 · 2 완료</span></div>
+        <div class="phase"><b>Phase 03</b><p><strong>화면 및 라우팅</strong>업로드 · 검토 · 보고서 · 설정 4개 화면과 상태 표시 규칙</p><span class="cnt">10 과제</span></div>
+        <div class="phase"><b>Phase 04</b><p><strong>FE·BE 연동</strong>health · CORS · Backend 주소 입력 · 스텁 API 관통</p><span class="cnt">9 과제</span></div>
+        <div class="phase"><b>Phase 05</b><p><strong>스캐폴드 검증</strong>빌드 · 기동 · 화면 전환 확인 후 테스트 프로세스 종료</p><span class="cnt">6 과제</span></div>
+        <div class="phase"><b>Phase 06</b><p><strong>OCR 추출</strong>값 식별 · 위치 제약 · 확인 필요 조건 · 인식률 측정</p><span class="cnt">7 과제 · 2 완료</span></div>
+        <div class="phase"><b>Phase 07</b><p><strong>정규화 및 판정</strong>단위 변환 · 기준 A·B 구현 · 경계값 및 재현성 검증</p><span class="cnt">11 과제</span></div>
+        <div class="phase"><b>Phase 08</b><p><strong>다건 처리 및 보정</strong>진행 상태 · 상세 확인 · 수동 수정 후 재판정</p><span class="cnt">8 과제</span></div>
+        <div class="phase"><b>Phase 09</b><p><strong>docx 생성</strong>플레이스홀더 치환 · 반복 행 생성 · Word 정상 열림 확인</p><span class="cnt">10 과제</span></div>
+        <div class="phase"><b>Phase 10</b><p><strong>통합 검증</strong>20장 전 과정 · 오프라인 동작 · 반응형 · 접근성 확인</p><span class="cnt">8 과제</span></div>
+      </div>
+    </section>
+
+    <section id="open">
+      <div class="sec-head"><b>07</b><h2>미확정</h2></div>
+      <div class="open">
+        <h3>기준 B의 Limit 기본값 54 dBµV/m</h3>
+        <p>보고서 서식이 FCC Part 15 Subpart B Class B (3 m)를 Limit 출처로 명시하고 있어 그대로 반영. 다만 2.4 GHz 대역은 Part 15.247(ISM) 적용 대상일 가능성이 있어 적용 대역·측정조건 적합성 확인 필요. 화면에서 수정 가능하도록 설계되어 개발 착수에는 지장 없음.</p>
+      </div>
+      <p class="note">서식의 dBµV/m 환산식과 CF는 서식 자체에 교육용 가정값으로 표기되어 있으며 실측 보정값이 아님.</p>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <div class="foot-in">
+    <span>Module_2 / docs / prd / ocr-pass-fail-prd.md</span>
+    <span>spec / task-001.md · task-002.md</span>
+    <span>검증일 2026-09-10</span>
+  </div>
+</footer>
